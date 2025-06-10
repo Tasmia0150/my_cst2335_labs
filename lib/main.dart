@@ -1,3 +1,4 @@
+import 'package:encrypted_shared_preferences/encrypted_shared_preferences.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -7,11 +8,11 @@ void main() {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'Flutter Demo',
       theme: ThemeData(
         // This is the theme of your application.
@@ -55,35 +56,77 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  late TextEditingController login = TextEditingController();
-  late TextEditingController password = TextEditingController();
-  String imgSource = "images/question-mark.png";
+  var myFontSize = 30.0;
+  var imageSource = "images/question-mark.png";
+
+  EncryptedSharedPreferences prefs = EncryptedSharedPreferences();
+  late TextEditingController _loginController;
+  late TextEditingController _passwordController;
 
   @override
   void initState() {
     super.initState();
-    login = TextEditingController();
-    password = TextEditingController();
+
+
+    _loginController = TextEditingController();
+    _passwordController = TextEditingController();
+
+    loadLogin();
   }
 
   @override
   void dispose() {
-    login.dispose();
-    password.dispose();
+    _loginController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
-  void handlelogin(){
+  void _loginButton() {
+    String password = _passwordController.value.text;
+
     setState(() {
-      if(password.text == "QWERTY123"){
-        imgSource = "images/light-bulb.png";
-      }
-      else{
-        imgSource = "images/stop-sign.png";
+      if (password == "QWERTY123") {
+        imageSource = "images/light-bulb.png";
+      } else {
+        imageSource = "images/stop-sign.png";
       }
     });
   }
 
+  void loadLogin() async {
+    final prefs = EncryptedSharedPreferences();
+    var loginName = await prefs.getString('LoginName');
+    var password = await prefs.getString('Password');
+
+    if (loginName.isNotEmpty &&
+        password.isNotEmpty) {
+      _loginController.text = loginName;
+      _passwordController.text = password;
+
+      Future.delayed(Duration.zero, () {
+        final snackBar = SnackBar(
+          content: Text('Previous login name and passwords have been loaded.'),
+        );
+
+        ScaffoldMessenger.of(context).showSnackBar(snackBar);
+      });
+    }
+  }
+
+
+  void saveLoginInfo() async {
+    final prefs = EncryptedSharedPreferences();
+    prefs.setString("LoginName", _loginController.text);
+    prefs.setString('Password', _passwordController.text);
+
+    _loginButton();
+  }
+
+  void deleteLogin() async {
+    prefs.clear();
+
+    _loginButton();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -122,28 +165,81 @@ class _MyHomePageState extends State<MyHomePage> {
           // wireframe for each widget.
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-    TextField(
-    controller: login,
-    decoration: const InputDecoration(
-    labelText: "Login",
-    border: OutlineInputBorder(),
-    ),
-    ),
-    const SizedBox(height: 20),
-    TextField(
-    controller: password,
-    decoration: const InputDecoration(
-    labelText: "Password",
-    border: OutlineInputBorder(),
-    ),
-    obscureText: true,
-    ),
-    const SizedBox(height: 20),
-    ElevatedButton(onPressed: handlelogin, child: const Text("Login"),),
-    Image.asset(imgSource, width: 200, height:200),
+            TextField(
+              controller: _loginController,
+              decoration: const InputDecoration(
+                hintText: "Type here",
+                border: OutlineInputBorder(),
+                labelText: "Login",
+              ),
+            ),
 
-    ],
-    ),
+            TextField(
+              controller: _passwordController,
+              decoration: InputDecoration(
+                hintText: "Type here",
+                border: OutlineInputBorder(),
+                labelText: "Password",
+              ),
+              obscureText: true,
+            ),
+
+            ElevatedButton(
+              onPressed: () {
+                showDialog<String>(
+                  context: context,
+                  builder:
+                      (BuildContext context) => AlertDialog(
+                    title: const Text('Save login info'),
+                    content: const Text(
+                      'Do you want to save your username and password?',
+                    ),
+                    actions: <Widget>[
+                      ElevatedButton(
+                        onPressed: () {
+                          saveLoginInfo();
+                          Navigator.pop(context);
+                        },
+                        style: ButtonStyle(
+                          backgroundColor: WidgetStateProperty.all(
+                            Colors.white70,
+                          ),
+                          foregroundColor: WidgetStateProperty.all(
+                            Colors.blue,
+                          ),
+                        ),
+                        child: Text("Yes"),
+                      ),
+
+                      ElevatedButton(
+                        onPressed: () {
+                          deleteLogin();
+                          Navigator.pop(context);
+                        },
+                        style: ButtonStyle(
+                          backgroundColor: WidgetStateProperty.all(
+                            Colors.white70,
+                          ),
+                          foregroundColor: WidgetStateProperty.all(
+                            Colors.blue,
+                          ),
+                        ),
+                        child: Text("No"),
+                      ),
+                    ],
+                  ),
+                );
+              },
+              style: ButtonStyle(
+                backgroundColor: WidgetStateProperty.all(Colors.white70),
+                foregroundColor: WidgetStateProperty.all(Colors.blue),
+              ),
+              child: Text("Login"),
+            ),
+
+            Image.asset(imageSource, width: 300, height: 300),
+          ],
+        ),
       ),
     );
   }
