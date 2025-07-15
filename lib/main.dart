@@ -1,6 +1,9 @@
 import 'package:encrypted_shared_preferences/encrypted_shared_preferences.dart';
 import 'package:flutter/material.dart';
 
+import 'Repository.dart';
+import 'ProfilePage.dart';
+
 void main() {
   runApp(const MyApp());
 }
@@ -12,8 +15,13 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false,
       title: 'Flutter Demo',
+      debugShowCheckedModeBanner: false,
+      initialRoute: '/',
+      routes: {
+        '/': (context) => const MyHomePage(title: 'My Home Page'),
+        '/ProfilePage': (context) => ProfilePage(),
+      },
       theme: ThemeData(
         // This is the theme of your application.
         //
@@ -32,7 +40,6 @@ class MyApp extends StatelessWidget {
         // tested with just a hot reload.
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
     );
   }
 }
@@ -60,6 +67,7 @@ class _MyHomePageState extends State<MyHomePage> {
   var imageSource = "images/question-mark.png";
 
   EncryptedSharedPreferences prefs = EncryptedSharedPreferences();
+  DataRepository storage = DataRepository();
   late TextEditingController _loginController;
   late TextEditingController _passwordController;
 
@@ -67,11 +75,11 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
 
-
     _loginController = TextEditingController();
     _passwordController = TextEditingController();
 
-    loadLogin();
+    loadLoginInfo();
+    storage.loadData();
   }
 
   @override
@@ -82,48 +90,60 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _loginButton() {
-    String password = _passwordController.value.text;
+    String password = _passwordController.text;
 
     setState(() {
       if (password == "QWERTY123") {
         imageSource = "images/light-bulb.png";
+
+        DataRepository.loginName = _loginController.text;
+
+        Future.delayed(const Duration(milliseconds: 400), () {
+          Navigator.pushNamed(context, '/ProfilePage');
+        });
       } else {
         imageSource = "images/stop-sign.png";
       }
     });
   }
 
-  void loadLogin() async {
+  void loadLoginInfo() async {
     final prefs = EncryptedSharedPreferences();
     var loginName = await prefs.getString('LoginName');
     var password = await prefs.getString('Password');
 
-    if (loginName.isNotEmpty &&
-        password.isNotEmpty) {
+    if (loginName.isNotEmpty && password.isNotEmpty) {
       _loginController.text = loginName;
       _passwordController.text = password;
 
-      Future.delayed(Duration.zero, () {
-        final snackBar = SnackBar(
-          content: Text('Previous login name and passwords have been loaded.'),
-        );
-
-        ScaffoldMessenger.of(context).showSnackBar(snackBar);
+      Future.delayed(const Duration(milliseconds: 300), () {
+        showSnackBar('Previous login name and passwords have been loaded.');
       });
     }
   }
 
+  void showSnackBar(String message) {
+    final snackBar = SnackBar(content: Text(message));
+
+    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+  }
 
   void saveLoginInfo() async {
     final prefs = EncryptedSharedPreferences();
-    prefs.setString("LoginName", _loginController.text);
-    prefs.setString('Password', _passwordController.text);
+    await prefs.setString("LoginName", _loginController.text);
+    await prefs.setString('Password', _passwordController.text);
 
     _loginButton();
   }
 
-  void deleteLogin() async {
+  void deleteLoginInfo() async {
     prefs.clear();
+
+    // Clear in-memory variables
+    DataRepository.firstName = null;
+    DataRepository.lastName = null;
+    DataRepository.phoneNumber = null;
+    DataRepository.emailAddress = null;
 
     _loginButton();
   }
@@ -146,9 +166,8 @@ class _MyHomePageState extends State<MyHomePage> {
         // the App.build method, and use it to set our appbar title.
         title: Text(widget.title),
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
+      body: Padding(
+        padding: EdgeInsets.all(12),
         child: Column(
           // Column is also a layout widget. It takes a list of children and
           // arranges them vertically. By default, it sizes itself to fit its
@@ -174,15 +193,19 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
             ),
 
+            SizedBox(height: 8), // Adds vertical space
+
             TextField(
               controller: _passwordController,
               decoration: InputDecoration(
-                hintText: "Type here",
+                hintText: "Password",
                 border: OutlineInputBorder(),
                 labelText: "Password",
               ),
               obscureText: true,
             ),
+
+            SizedBox(height: 8),
 
             ElevatedButton(
               onPressed: () {
@@ -208,12 +231,12 @@ class _MyHomePageState extends State<MyHomePage> {
                             Colors.blue,
                           ),
                         ),
-                        child: Text("Yes"),
+                        child: Text("Ok"),
                       ),
 
                       ElevatedButton(
                         onPressed: () {
-                          deleteLogin();
+                          deleteLoginInfo();
                           Navigator.pop(context);
                         },
                         style: ButtonStyle(
@@ -224,7 +247,7 @@ class _MyHomePageState extends State<MyHomePage> {
                             Colors.blue,
                           ),
                         ),
-                        child: Text("No"),
+                        child: Text("Cancel"),
                       ),
                     ],
                   ),
