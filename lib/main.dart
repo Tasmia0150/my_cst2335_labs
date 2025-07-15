@@ -1,8 +1,4 @@
-import 'package:encrypted_shared_preferences/encrypted_shared_preferences.dart';
 import 'package:flutter/material.dart';
-
-import 'Repository.dart';
-import 'ProfilePage.dart';
 
 void main() {
   runApp(const MyApp());
@@ -17,44 +13,16 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter Demo',
       debugShowCheckedModeBanner: false,
-      initialRoute: '/',
-      routes: {
-        '/': (context) => const MyHomePage(title: 'My Home Page'),
-        '/ProfilePage': (context) => ProfilePage(),
-      },
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
+      home: const MyHomePage(title: 'Flutter Demo Home Page'),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
   const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
 
   final String title;
 
@@ -63,207 +31,170 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  List<String> words = [];
+  List<int> quantity = [];
+
   var myFontSize = 30.0;
   var imageSource = "images/question-mark.png";
-
-  EncryptedSharedPreferences prefs = EncryptedSharedPreferences();
-  DataRepository storage = DataRepository();
-  late TextEditingController _loginController;
-  late TextEditingController _passwordController;
+  late TextEditingController _itemController;
+  late TextEditingController _quantityController;
 
   @override
   void initState() {
     super.initState();
-
-    _loginController = TextEditingController();
-    _passwordController = TextEditingController();
-
-    loadLoginInfo();
-    storage.loadData();
+    _itemController = TextEditingController();
+    _quantityController = TextEditingController();
   }
 
   @override
   void dispose() {
-    _loginController.dispose();
-    _passwordController.dispose();
+    _itemController.dispose();
+    _quantityController.dispose();
     super.dispose();
-  }
-
-  void _loginButton() {
-    String password = _passwordController.text;
-
-    setState(() {
-      if (password == "QWERTY123") {
-        imageSource = "images/light-bulb.png";
-
-        DataRepository.loginName = _loginController.text;
-
-        Future.delayed(const Duration(milliseconds: 400), () {
-          Navigator.pushNamed(context, '/ProfilePage');
-        });
-      } else {
-        imageSource = "images/stop-sign.png";
-      }
-    });
-  }
-
-  void loadLoginInfo() async {
-    final prefs = EncryptedSharedPreferences();
-    var loginName = await prefs.getString('LoginName');
-    var password = await prefs.getString('Password');
-
-    if (loginName.isNotEmpty && password.isNotEmpty) {
-      _loginController.text = loginName;
-      _passwordController.text = password;
-
-      Future.delayed(const Duration(milliseconds: 300), () {
-        showSnackBar('Previous login name and passwords have been loaded.');
-      });
-    }
-  }
-
-  void showSnackBar(String message) {
-    final snackBar = SnackBar(content: Text(message));
-
-    ScaffoldMessenger.of(context).showSnackBar(snackBar);
-  }
-
-  void saveLoginInfo() async {
-    final prefs = EncryptedSharedPreferences();
-    await prefs.setString("LoginName", _loginController.text);
-    await prefs.setString('Password', _passwordController.text);
-
-    _loginButton();
-  }
-
-  void deleteLoginInfo() async {
-    prefs.clear();
-
-    // Clear in-memory variables
-    DataRepository.firstName = null;
-    DataRepository.lastName = null;
-    DataRepository.phoneNumber = null;
-    DataRepository.emailAddress = null;
-
-    _loginButton();
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
       appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
         title: Text(widget.title),
       ),
-      body: Padding(
-        padding: EdgeInsets.all(12),
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            TextField(
-              controller: _loginController,
-              decoration: const InputDecoration(
-                hintText: "Type here",
-                border: OutlineInputBorder(),
-                labelText: "Login",
+      body: Center(
+        child: Padding(padding: EdgeInsets.all(12), child: ListPage()),
+      ),
+    );
+  }
+
+  Widget ListPage() {
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Flexible(
+              child: TextField(
+                controller: _itemController,
+                decoration: const InputDecoration(
+                  hintText: "Item name",
+                  border: OutlineInputBorder(),
+                  labelText: "Type the item here",
+                ),
               ),
             ),
 
-            SizedBox(height: 8), // Adds vertical space
-
-            TextField(
-              controller: _passwordController,
-              decoration: InputDecoration(
-                hintText: "Password",
-                border: OutlineInputBorder(),
-                labelText: "Password",
+            Flexible(
+              child: TextField(
+                controller: _quantityController,
+                decoration: const InputDecoration(
+                  hintText: "Item quantity",
+                  border: OutlineInputBorder(),
+                  labelText: "Type the quantity here",
+                ),
               ),
-              obscureText: true,
             ),
-
-            SizedBox(height: 8),
 
             ElevatedButton(
               onPressed: () {
-                showDialog<String>(
-                  context: context,
-                  builder:
-                      (BuildContext context) => AlertDialog(
-                    title: const Text('Save login info'),
-                    content: const Text(
-                      'Do you want to save your username and password?',
-                    ),
-                    actions: <Widget>[
-                      ElevatedButton(
-                        onPressed: () {
-                          saveLoginInfo();
-                          Navigator.pop(context);
-                        },
-                        style: ButtonStyle(
-                          backgroundColor: WidgetStateProperty.all(
-                            Colors.white70,
-                          ),
-                          foregroundColor: WidgetStateProperty.all(
-                            Colors.blue,
-                          ),
-                        ),
-                        child: Text("Ok"),
-                      ),
-
-                      ElevatedButton(
-                        onPressed: () {
-                          deleteLoginInfo();
-                          Navigator.pop(context);
-                        },
-                        style: ButtonStyle(
-                          backgroundColor: WidgetStateProperty.all(
-                            Colors.white70,
-                          ),
-                          foregroundColor: WidgetStateProperty.all(
-                            Colors.blue,
-                          ),
-                        ),
-                        child: Text("Cancel"),
-                      ),
-                    ],
-                  ),
-                );
+                setState(() {
+                  words.add(_itemController.value.text);
+                  quantity.add(int.parse(_quantityController.value.text));
+                  _itemController.clear();
+                  _quantityController.clear();
+                });
               },
               style: ButtonStyle(
                 backgroundColor: WidgetStateProperty.all(Colors.white70),
-                foregroundColor: WidgetStateProperty.all(Colors.blue),
+                foregroundColor: WidgetStateProperty.all(Colors.purple),
               ),
-              child: Text("Login"),
+              child: Text("Click here"),
             ),
-
-            Image.asset(imageSource, width: 300, height: 300),
           ],
         ),
-      ),
+
+        SizedBox(height: 12),
+
+        words.isEmpty
+            ? Text('There are no items in the list')
+            : Expanded(
+          child: ListView.builder(
+            itemCount: words.length,
+            itemBuilder: (context, rowNumber) {
+              return GestureDetector(
+                onTap: () {},
+                // onDoubleTap: () {
+                //   setState(() {
+                //     words.removeAt(rowNumber);
+                //   });
+                //  },
+                onLongPress: () {
+                  showDialog<String>(
+                    context: context,
+                    builder:
+                        (BuildContext context) => AlertDialog(
+                      title: const Text('Delete item'),
+                      content: const Text(
+                        'Do you want to delete this item?',
+                      ),
+                      actions: <Widget>[
+                        ElevatedButton(
+                          onPressed: () {
+                            setState(() {
+                              words.removeAt(rowNumber);
+                              quantity.removeAt(rowNumber);
+                            });
+                            Navigator.pop(context);
+                          },
+                          style: ButtonStyle(
+                            backgroundColor: WidgetStateProperty.all(
+                              Colors.white70,
+                            ),
+                            foregroundColor: WidgetStateProperty.all(
+                              Colors.blue,
+                            ),
+                          ),
+                          child: Text("Yes"),
+                        ),
+
+                        ElevatedButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                          },
+                          style: ButtonStyle(
+                            backgroundColor: WidgetStateProperty.all(
+                              Colors.white70,
+                            ),
+                            foregroundColor: WidgetStateProperty.all(
+                              Colors.blue,
+                            ),
+                          ),
+                          child: Text("No"),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+                // onHorizontalDragUpdate: (details) {
+                //   if (((details.primaryDelta!) * (details.primaryDelta!)) >
+                //       100.0) {
+                //     setState(() {
+                //       words.removeAt(rowNumber);
+                //     });
+                //   }
+                // },
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      "${rowNumber + 1}: ${words[rowNumber]} quantity: ${quantity[rowNumber]}",
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 }
