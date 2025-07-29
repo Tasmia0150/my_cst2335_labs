@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:my_cst2335_labs/dao/shopping_dao.dart';
+import 'package:my_cst2335_labs/database.dart';
+import 'package:my_cst2335_labs/entity/shopping_item.dart';
+
+
 
 void main() {
   runApp(const MyApp());
@@ -11,12 +16,12 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Shopping List App',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const MyHomePage(title: 'Shopping List App'),
     );
   }
 }
@@ -31,11 +36,11 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  List<String> words = [];
-  List<int> quantity = [];
+  List<ShoppingItem> items = [];
 
-  var myFontSize = 30.0;
-  var imageSource = "images/question-mark.png";
+  late ShoppingDao _itemDao;
+  late var dbItems;
+
   late TextEditingController _itemController;
   late TextEditingController _quantityController;
 
@@ -44,6 +49,7 @@ class _MyHomePageState extends State<MyHomePage> {
     super.initState();
     _itemController = TextEditingController();
     _quantityController = TextEditingController();
+    setUpDatabase();
   }
 
   @override
@@ -51,6 +57,18 @@ class _MyHomePageState extends State<MyHomePage> {
     _itemController.dispose();
     _quantityController.dispose();
     super.dispose();
+  }
+
+  Future<void> setUpDatabase() async {
+    final database =
+    await $FloorShoppingDatabase.databaseBuilder('shopping_database.db').build();
+
+    _itemDao = database.shoppingDao;
+    dbItems = await _itemDao.findAllItems();
+
+    setState(() {
+      items = dbItems;
+    });
   }
 
   @override
@@ -61,7 +79,10 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text(widget.title),
       ),
       body: Center(
-        child: Padding(padding: EdgeInsets.all(12), child: ListPage()),
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: ListPage(),
+        ),
       ),
     );
   }
@@ -78,7 +99,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 decoration: const InputDecoration(
                   hintText: "Item name",
                   border: OutlineInputBorder(),
-                  labelText: "Type the item here",
+                  labelText: "Type the item name here",
                 ),
               ),
             ),
@@ -97,41 +118,51 @@ class _MyHomePageState extends State<MyHomePage> {
             ElevatedButton(
               onPressed: () {
                 setState(() {
-                  words.add(_itemController.value.text);
-                  quantity.add(int.parse(_quantityController.value.text));
+                  var item = _itemController.text.trim();
+                  int? quantity = int.tryParse(_quantityController.text);
+
+                  if (item.isNotEmpty && quantity != null) {
+                    var addItem = ShoppingItem(
+                      ShoppingItem.ID++,
+                      item,
+                      quantity,
+                    );
+                    items.add(addItem);
+
+                    _itemDao.insertItem(addItem);
+                  } else {
+                    final snackBar = SnackBar(
+                      content: Text('Empty or Invalid Item name/Quantity.'),
+                    );
+
+                    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                  }
                   _itemController.clear();
                   _quantityController.clear();
                 });
               },
               style: ButtonStyle(
-                backgroundColor: WidgetStateProperty.all(Colors.white70),
-                foregroundColor: WidgetStateProperty.all(Colors.purple),
+                backgroundColor: MaterialStateProperty.all(Colors.white70),
+                foregroundColor: MaterialStateProperty.all(Colors.purple),
               ),
-              child: Text("Click here"),
+              child: const Text("Click here"),
             ),
           ],
         ),
 
-        SizedBox(height: 12),
+        const SizedBox(height: 12),
 
-        words.isEmpty
-            ? Text('There are no items in the list')
+        items.isEmpty
+            ? const Text('There are no items in the list')
             : Expanded(
           child: ListView.builder(
-            itemCount: words.length,
+            itemCount: items.length,
             itemBuilder: (context, rowNumber) {
               return GestureDetector(
-                onTap: () {},
-                // onDoubleTap: () {
-                //   setState(() {
-                //     words.removeAt(rowNumber);
-                //   });
-                //  },
                 onLongPress: () {
                   showDialog<String>(
                     context: context,
-                    builder:
-                        (BuildContext context) => AlertDialog(
+                    builder: (BuildContext context) => AlertDialog(
                       title: const Text('Delete item'),
                       content: const Text(
                         'Do you want to delete this item?',
@@ -139,21 +170,22 @@ class _MyHomePageState extends State<MyHomePage> {
                       actions: <Widget>[
                         ElevatedButton(
                           onPressed: () {
+                            _itemDao.deleteItem(items[rowNumber]);
+
                             setState(() {
-                              words.removeAt(rowNumber);
-                              quantity.removeAt(rowNumber);
+                              items.removeAt(rowNumber);
                             });
                             Navigator.pop(context);
                           },
                           style: ButtonStyle(
-                            backgroundColor: WidgetStateProperty.all(
+                            backgroundColor: MaterialStateProperty.all(
                               Colors.white70,
                             ),
-                            foregroundColor: WidgetStateProperty.all(
+                            foregroundColor: MaterialStateProperty.all(
                               Colors.blue,
                             ),
                           ),
-                          child: Text("Yes"),
+                          child: const Text("Yes"),
                         ),
 
                         ElevatedButton(
@@ -161,32 +193,24 @@ class _MyHomePageState extends State<MyHomePage> {
                             Navigator.pop(context);
                           },
                           style: ButtonStyle(
-                            backgroundColor: WidgetStateProperty.all(
+                            backgroundColor: MaterialStateProperty.all(
                               Colors.white70,
                             ),
-                            foregroundColor: WidgetStateProperty.all(
+                            foregroundColor: MaterialStateProperty.all(
                               Colors.blue,
                             ),
                           ),
-                          child: Text("No"),
+                          child: const Text("No"),
                         ),
                       ],
                     ),
                   );
                 },
-                // onHorizontalDragUpdate: (details) {
-                //   if (((details.primaryDelta!) * (details.primaryDelta!)) >
-                //       100.0) {
-                //     setState(() {
-                //       words.removeAt(rowNumber);
-                //     });
-                //   }
-                // },
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      "${rowNumber + 1}: ${words[rowNumber]} quantity: ${quantity[rowNumber]}",
+                      "${rowNumber + 1}: ${items[rowNumber].name} quantity: ${items[rowNumber].quantity}",
                     ),
                   ],
                 ),
