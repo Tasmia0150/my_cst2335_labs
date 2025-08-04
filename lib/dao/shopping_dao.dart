@@ -1,6 +1,7 @@
 import 'package:floor/floor.dart';
 import '../entity/shopping_item.dart';
 
+
 @dao
 abstract class ShoppingDao {
   @Query('SELECT * FROM ShoppingItem')

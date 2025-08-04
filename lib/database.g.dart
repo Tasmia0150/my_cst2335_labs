@@ -80,7 +80,7 @@ class _$ShoppingDatabase extends ShoppingDatabase {
     Callback? callback,
   ]) async {
     final databaseOptions = sqflite.OpenDatabaseOptions(
-      version: 1,
+      version: 2,
       onConfigure: (database) async {
         await database.execute('PRAGMA foreign_keys = ON');
         await callback?.onConfigure?.call(database);
@@ -96,7 +96,7 @@ class _$ShoppingDatabase extends ShoppingDatabase {
       },
       onCreate: (database, version) async {
         await database.execute(
-            'CREATE TABLE IF NOT EXISTS `ShoppingItem` (`id` INTEGER NOT NULL, `name` TEXT NOT NULL, `quantity` INTEGER NOT NULL, PRIMARY KEY (`id`))');
+            'CREATE TABLE IF NOT EXISTS `ShoppingItem` (`id` INTEGER PRIMARY KEY AUTOINCREMENT, `name` TEXT NOT NULL, `quantity` INTEGER NOT NULL)');
 
         await callback?.onCreate?.call(database, version);
       },
@@ -147,7 +147,9 @@ class _$ShoppingDao extends ShoppingDao {
   Future<List<ShoppingItem>> findAllItems() async {
     return _queryAdapter.queryList('SELECT * FROM ShoppingItem',
         mapper: (Map<String, Object?> row) => ShoppingItem(
-            row['id'] as int, row['name'] as String, row['quantity'] as int));
+            id: row['id'] as int?,
+            name: row['name'] as String,
+            quantity: row['quantity'] as int));
   }
 
   @override
