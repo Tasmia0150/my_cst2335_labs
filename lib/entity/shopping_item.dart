@@ -1,12 +1,17 @@
 import 'package:floor/floor.dart';
 
-@Entity(tableName: 'ShoppingItem')
+@entity
 class ShoppingItem {
-  @PrimaryKey(autoGenerate: true) // Capital "P" in PrimaryKey
-  final int? id;
-
+  @primaryKey
+  final int id;
   final String name;
   final int quantity;
 
-  ShoppingItem({this.id, required this.name, required this.quantity});
+  static int ID = 1;
+
+  ShoppingItem(this.id, this.name, this.quantity) {
+    if (id >= ID) {
+      ID = id + 1;
+    }
+  }
 }
