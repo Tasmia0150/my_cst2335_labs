@@ -37,7 +37,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   List<ShoppingItem> items = [];
-
+  ShoppingItem? selectedItem;
   late ShoppingDao _itemDao;
   late var dbItems;
 
@@ -77,17 +77,88 @@ class _MyHomePageState extends State<MyHomePage> {
       appBar: AppBar(
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         title: Text(widget.title),
+        actions: [
+          if (selectedItem != null)
+            IconButton(
+              icon: Icon(Icons.close),
+              onPressed: () => setState(() => selectedItem = null),
+            ),
+        ],
       ),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(12),
-          child: ListPage(),
+          child: _reactiveLayout(context),
         ),
       ),
     );
   }
 
-  Widget ListPage() {
+  Widget _reactiveLayout(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final isTablet = (size.width > size.height) && (size.width > 720);
+
+    if (isTablet) {
+      return Row(
+        children: [
+          Expanded(
+            flex: 4,
+            child: _buildListPage(),
+          ),
+          Expanded(
+            flex: 6,
+            child: _buildDetailsPage(),
+          ),
+        ],
+      );
+    } else {
+      return selectedItem == null ? _buildListPage() : _buildDetailsPage();
+    }
+  }
+
+  Widget _buildDetailsPage() {
+    if (selectedItem == null) {
+      return Center(child: Text("Select an item"));
+    }
+
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text("Item Name: ${selectedItem!.name}",
+              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+          SizedBox(height: 16),
+          Text("Quantity: ${selectedItem!.quantity}",
+              style: TextStyle(fontSize: 18)),
+          SizedBox(height: 8),
+          Text("Database ID: ${selectedItem!.id}",
+              style: TextStyle(fontSize: 18, color: Colors.grey)),
+          SizedBox(height: 24),
+          ElevatedButton(
+            onPressed: () {
+              _itemDao.deleteItem(selectedItem!);
+              setState(() {
+                items.remove(selectedItem);
+                selectedItem = null;
+              });
+            },
+            child: Text("Delete"),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+          ),
+          if (MediaQuery.of(context).size.width <= 720) ...[
+            SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () => setState(() => selectedItem = null),
+              child: Text("Close"),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildListPage() {
     return Column(
       children: [
         Row(
@@ -103,7 +174,6 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
               ),
             ),
-
             Flexible(
               child: TextField(
                 controller: _quantityController,
@@ -114,7 +184,6 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
               ),
             ),
-
             ElevatedButton(
               onPressed: () {
                 setState(() {
@@ -128,13 +197,11 @@ class _MyHomePageState extends State<MyHomePage> {
                       quantity,
                     );
                     items.add(addItem);
-
                     _itemDao.insertItem(addItem);
                   } else {
                     final snackBar = SnackBar(
                       content: Text('Empty or Invalid Item name/Quantity.'),
                     );
-
                     ScaffoldMessenger.of(context).showSnackBar(snackBar);
                   }
                   _itemController.clear();
@@ -142,77 +209,51 @@ class _MyHomePageState extends State<MyHomePage> {
                 });
               },
               style: ButtonStyle(
-                backgroundColor: MaterialStateProperty.all(Colors.white70),
-                foregroundColor: MaterialStateProperty.all(Colors.purple),
+                backgroundColor: WidgetStateProperty.all(Colors.white70),
+                foregroundColor: WidgetStateProperty.all(Colors.purple),
               ),
-              child: const Text("Click here"),
+              child: const Text("Add Item"),
             ),
           ],
         ),
-
         const SizedBox(height: 12),
-
         items.isEmpty
             ? const Text('There are no items in the list')
             : Expanded(
           child: ListView.builder(
             itemCount: items.length,
             itemBuilder: (context, rowNumber) {
-              return GestureDetector(
-                onLongPress: () {
-                  showDialog<String>(
-                    context: context,
-                    builder: (BuildContext context) => AlertDialog(
-                      title: const Text('Delete item'),
-                      content: const Text(
-                        'Do you want to delete this item?',
+              return ListTile(
+                onTap: () => setState(() => selectedItem = items[rowNumber]),
+                title: Text("${rowNumber + 1}: ${items[rowNumber].name}"),
+                subtitle: Text("Quantity: ${items[rowNumber].quantity}"),
+                trailing: IconButton(
+                  icon: Icon(Icons.delete),
+                  onPressed: () {
+                    showDialog<String>(
+                      context: context,
+                      builder: (BuildContext context) => AlertDialog(
+                        title: const Text('Delete item'),
+                        content: const Text('Do you want to delete this item?'),
+                        actions: <Widget>[
+                          TextButton(
+                            onPressed: () {
+                              _itemDao.deleteItem(items[rowNumber]);
+                              setState(() {
+                                items.removeAt(rowNumber);
+                              });
+                              Navigator.pop(context);
+                            },
+                            child: const Text("Yes"),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            child: const Text("No"),
+                          ),
+                        ],
                       ),
-                      actions: <Widget>[
-                        ElevatedButton(
-                          onPressed: () {
-                            _itemDao.deleteItem(items[rowNumber]);
-
-                            setState(() {
-                              items.removeAt(rowNumber);
-                            });
-                            Navigator.pop(context);
-                          },
-                          style: ButtonStyle(
-                            backgroundColor: MaterialStateProperty.all(
-                              Colors.white70,
-                            ),
-                            foregroundColor: MaterialStateProperty.all(
-                              Colors.blue,
-                            ),
-                          ),
-                          child: const Text("Yes"),
-                        ),
-
-                        ElevatedButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                          },
-                          style: ButtonStyle(
-                            backgroundColor: MaterialStateProperty.all(
-                              Colors.white70,
-                            ),
-                            foregroundColor: MaterialStateProperty.all(
-                              Colors.blue,
-                            ),
-                          ),
-                          child: const Text("No"),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      "${rowNumber + 1}: ${items[rowNumber].name} quantity: ${items[rowNumber].quantity}",
-                    ),
-                  ],
+                    );
+                  },
                 ),
               );
             },
