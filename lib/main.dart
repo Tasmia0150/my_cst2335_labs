@@ -37,7 +37,9 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   List<ShoppingItem> items = [];
+
   ShoppingItem? selectedItem;
+
   late ShoppingDao _itemDao;
   late var dbItems;
 
@@ -88,7 +90,9 @@ class _MyHomePageState extends State<MyHomePage> {
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(12),
+
           child: _reactiveLayout(context),
+
         ),
       ),
     );
@@ -197,11 +201,13 @@ class _MyHomePageState extends State<MyHomePage> {
                       quantity,
                     );
                     items.add(addItem);
+
                     _itemDao.insertItem(addItem);
                   } else {
                     final snackBar = SnackBar(
                       content: Text('Empty or Invalid Item name/Quantity.'),
                     );
+
                     ScaffoldMessenger.of(context).showSnackBar(snackBar);
                   }
                   _itemController.clear();
@@ -209,20 +215,23 @@ class _MyHomePageState extends State<MyHomePage> {
                 });
               },
               style: ButtonStyle(
-                backgroundColor: WidgetStateProperty.all(Colors.white70),
-                foregroundColor: WidgetStateProperty.all(Colors.purple),
+                backgroundColor: MaterialStateProperty.all(Colors.white70),
+                foregroundColor: MaterialStateProperty.all(Colors.purple),
               ),
+
               child: const Text("Add Item"),
             ),
           ],
         ),
         const SizedBox(height: 12),
+
         items.isEmpty
             ? const Text('There are no items in the list')
             : Expanded(
           child: ListView.builder(
             itemCount: items.length,
             itemBuilder: (context, rowNumber) {
+
               return ListTile(
                 onTap: () => setState(() => selectedItem = items[rowNumber]),
                 title: Text("${rowNumber + 1}: ${items[rowNumber].name}"),
